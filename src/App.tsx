@@ -14,6 +14,7 @@ export default function App() {
   const [fps, setFps] = useState(10)
   const [algorithm, setAlgorithm] = useState<DitherAlgorithm>('floyd-steinberg')
   const [fitMode, setFitMode] = useState<FitMode>('letterbox')
+  const [invert, setInvert] = useState(false)
   const [sampleGray, setSampleGray] = useState<Uint8Array | null>(null)
   const [frames, setFrames] = useState<OLEDFrame[]>([])
   const [processing, setProcessing] = useState(false)
@@ -36,7 +37,7 @@ export default function App() {
       const rawFrames = await extractAllFrames(file, fps, 128, 64, fitMode, (cur, total) => {
         console.log(`Extracting ${cur}/${total}`)
       })
-      const oledFrames = rawFrames.map((raw) => processFrame(raw, algorithm))
+      const oledFrames = rawFrames.map((raw) => processFrame(raw, algorithm, 128, 64, invert))
       setFrames(oledFrames)
       setStep(4)
     } finally {
@@ -53,6 +54,7 @@ export default function App() {
     setFps(10)
     setAlgorithm('floyd-steinberg')
     setFitMode('letterbox')
+    setInvert(false)
     setProcessing(false)
   }
 
@@ -87,6 +89,8 @@ export default function App() {
             onAlgorithmChange={setAlgorithm}
             fitMode={fitMode}
             onFitModeChange={setFitMode}
+            invert={invert}
+            onInvertChange={setInvert}
             onProcess={handleProcess}
             processing={processing}
           />

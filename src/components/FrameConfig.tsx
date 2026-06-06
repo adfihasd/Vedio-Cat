@@ -9,6 +9,8 @@ interface Props {
   onAlgorithmChange: (alg: DitherAlgorithm) => void
   fitMode: FitMode
   onFitModeChange: (mode: FitMode) => void
+  invert: boolean
+  onInvertChange: (invert: boolean) => void
   onProcess: () => void
   processing: boolean
 }
@@ -17,7 +19,7 @@ const STM32_FLASH_KB = 60
 
 export default function FrameConfig({
   videoInfo, fps, onFpsChange, algorithm, onAlgorithmChange,
-  fitMode, onFitModeChange, onProcess, processing
+  fitMode, onFitModeChange, invert, onInvertChange, onProcess, processing
 }: Props) {
   const frameCount = Math.floor(videoInfo.duration * fps)
   const totalKB = frameCount * 1024 / 1024
@@ -97,6 +99,24 @@ export default function FrameConfig({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Invert toggle */}
+      <div className="mb-6 flex items-center justify-between bg-zinc-800 rounded-lg p-4">
+        <div>
+          <span className="text-sm font-medium">反转颜色</span>
+          <p className="text-xs text-zinc-400 mt-0.5">暗背景、亮轮廓</p>
+        </div>
+        <button
+          onClick={() => onInvertChange(!invert)}
+          className={`relative w-11 h-6 rounded-full transition-colors ${
+            invert ? 'bg-blue-600' : 'bg-zinc-600'
+          }`}
+        >
+          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+            invert ? 'translate-x-5' : 'translate-x-0.5'
+          }`} />
+        </button>
       </div>
 
       {/* Process button */}
