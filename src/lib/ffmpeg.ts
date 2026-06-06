@@ -1,6 +1,6 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
-import type { VideoInfo } from '../types'
+import type { FitMode, VideoInfo } from '../types'
 
 let ffmpeg: FFmpeg | null = null
 
@@ -56,17 +56,22 @@ export async function extractRawFrame(
   file: File,
   timestampSec: number,
   outW = 128,
-  outH = 64
+  outH = 64,
+  fitMode: FitMode = 'letterbox'
 ): Promise<Uint8Array> {
   const fm = await loadFFmpeg()
   const inputName = 'v' + Date.now() + getExt(file.name)
+
+  const vf = fitMode === 'letterbox'
+    ? `scale=${outW}:${outH}:force_original_aspect_ratio=decrease,pad=${outW}:${outH}:(ow-iw)/2:(oh-ih)/2:black`
+    : `scale=${outW}:${outH}`  // stretch: simple resize
 
   await fm.writeFile(inputName, await fetchFile(file))
   await fm.exec([
     '-ss', timestampSec.toFixed(3),
     '-i', inputName,
     '-vframes', '1',
-    '-s', `${outW}x${outH}`,
+    '-vf', vf,
     '-pix_fmt', 'gray',
     '-f', 'rawvideo',
     'out.raw'
@@ -85,6 +90,7 @@ export async function extractAllFrames(
   fps: number,
   outW = 128,
   outH = 64,
+  fitMode: FitMode = 'letterbox',
   onProgress?: (current: number, total: number) => void
 ): Promise<Uint8Array[]> {
   const info = await getVideoInfo(file)
@@ -93,7 +99,7 @@ export async function extractAllFrames(
 
   for (let i = 0; i < totalFrames; i++) {
     const ts = i / fps
-    const raw = await extractRawFrame(file, ts, outW, outH)
+    const raw = await extractRawFrame(file, ts, outW, outH, fitMode)
     frames.push(raw)
     onProgress?.(i + 1, totalFrames)
   }

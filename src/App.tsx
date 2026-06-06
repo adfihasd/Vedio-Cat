@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { VideoInfo, OLEDFrame, DitherAlgorithm, AppStep } from './types'
+import type { VideoInfo, OLEDFrame, DitherAlgorithm, FitMode, AppStep } from './types'
 import VideoUploader from './components/VideoUploader'
 import FrameConfig from './components/FrameConfig'
 import DitherPreview from './components/DitherPreview'
@@ -13,6 +13,7 @@ export default function App() {
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
   const [fps, setFps] = useState(10)
   const [algorithm, setAlgorithm] = useState<DitherAlgorithm>('floyd-steinberg')
+  const [fitMode, setFitMode] = useState<FitMode>('letterbox')
   const [sampleGray, setSampleGray] = useState<Uint8Array | null>(null)
   const [frames, setFrames] = useState<OLEDFrame[]>([])
   const [processing, setProcessing] = useState(false)
@@ -24,7 +25,7 @@ export default function App() {
 
     // Pre-extract middle frame for preview
     const midTs = info.duration / 2
-    const gray = await extractRawFrame(f, midTs, 128, 64)
+    const gray = await extractRawFrame(f, midTs, 128, 64, fitMode)
     setSampleGray(gray)
   }, [])
 
@@ -32,7 +33,7 @@ export default function App() {
     if (!file) return
     setProcessing(true)
     try {
-      const rawFrames = await extractAllFrames(file, fps, 128, 64, (cur, total) => {
+      const rawFrames = await extractAllFrames(file, fps, 128, 64, fitMode, (cur, total) => {
         console.log(`Extracting ${cur}/${total}`)
       })
       const oledFrames = rawFrames.map((raw) => processFrame(raw, algorithm))
@@ -51,6 +52,7 @@ export default function App() {
     setFrames([])
     setFps(10)
     setAlgorithm('floyd-steinberg')
+    setFitMode('letterbox')
     setProcessing(false)
   }
 
@@ -83,6 +85,8 @@ export default function App() {
             onFpsChange={setFps}
             algorithm={algorithm}
             onAlgorithmChange={setAlgorithm}
+            fitMode={fitMode}
+            onFitModeChange={setFitMode}
             onProcess={handleProcess}
             processing={processing}
           />

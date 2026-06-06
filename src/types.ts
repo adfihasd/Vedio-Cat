@@ -18,5 +18,13 @@ export const DITHER_OPTIONS: { key: DitherAlgorithm; label: string }[] = [
   { key: 'atkinson', label: 'Atkinson' },
 ]
 
+/** How to fit video into 128×64 OLED frame */
+export type FitMode = 'stretch' | 'letterbox'
+
+export const FIT_OPTIONS: { key: FitMode; label: string }[] = [
+  { key: 'stretch', label: '拉伸填充' },
+  { key: 'letterbox', label: '等比居中' },
+]
+
 /** App state machine steps */
 export type AppStep = 1 | 2 | 3 | 4

@@ -1,5 +1,5 @@
-import type { VideoInfo, DitherAlgorithm } from '../types'
-import { DITHER_OPTIONS } from '../types'
+import type { VideoInfo, DitherAlgorithm, FitMode } from '../types'
+import { DITHER_OPTIONS, FIT_OPTIONS } from '../types'
 
 interface Props {
   videoInfo: VideoInfo
@@ -7,6 +7,8 @@ interface Props {
   onFpsChange: (fps: number) => void
   algorithm: DitherAlgorithm
   onAlgorithmChange: (alg: DitherAlgorithm) => void
+  fitMode: FitMode
+  onFitModeChange: (mode: FitMode) => void
   onProcess: () => void
   processing: boolean
 }
@@ -14,7 +16,8 @@ interface Props {
 const STM32_FLASH_KB = 60
 
 export default function FrameConfig({
-  videoInfo, fps, onFpsChange, algorithm, onAlgorithmChange, onProcess, processing
+  videoInfo, fps, onFpsChange, algorithm, onAlgorithmChange,
+  fitMode, onFitModeChange, onProcess, processing
 }: Props) {
   const frameCount = Math.floor(videoInfo.duration * fps)
   const totalKB = frameCount * 1024 / 1024
@@ -55,6 +58,25 @@ export default function FrameConfig({
             {totalKB.toFixed(1)} KB
             {overBudget && ` ⚠️ 超出 Flash (${STM32_FLASH_KB}KB)`}
           </span>
+        </div>
+      </div>
+
+      {/* Fit mode selector */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">画面适配</label>
+        <div className="flex gap-2">
+          {FIT_OPTIONS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => onFitModeChange(key)}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition
+                ${fitMode === key
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
