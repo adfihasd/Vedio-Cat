@@ -57,14 +57,27 @@ export async function extractRawFrame(
   timestampSec: number,
   outW = 128,
   outH = 64,
-  fitMode: FitMode = 'letterbox'
+  fitMode: FitMode = 'letterbox',
+  invert = false
 ): Promise<Uint8Array> {
   const fm = await loadFFmpeg()
   const inputName = 'v' + Date.now() + getExt(file.name)
 
-  const vf = fitMode === 'letterbox'
-    ? `scale=${outW}:${outH}:force_original_aspect_ratio=decrease,pad=${outW}:${outH}:(ow-iw)/2:(oh-ih)/2:black`
-    : `scale=${outW}:${outH}`  // stretch: simple resize
+  // Build filter chain: scale → [negate if invert] → [pad if letterbox]
+  const filters = [`scale=${outW}:${outH}`]
+
+  if (fitMode === 'letterbox') {
+    // Replace with aspect-ratio-preserving scale
+    filters[0] = `scale=${outW}:${outH}:force_original_aspect_ratio=decrease`
+    // Invert BEFORE padding so black bars stay black
+    if (invert) filters.push('negate')
+    filters.push(`pad=${outW}:${outH}:(ow-iw)/2:(oh-ih)/2:black`)
+  } else {
+    // Stretch: simple scale, invert at end if needed
+    if (invert) filters.push('negate')
+  }
+
+  const vf = filters.join(',')
 
   await fm.writeFile(inputName, await fetchFile(file))
   await fm.exec([
@@ -91,6 +104,7 @@ export async function extractAllFrames(
   outW = 128,
   outH = 64,
   fitMode: FitMode = 'letterbox',
+  invert = false,
   onProgress?: (current: number, total: number) => void
 ): Promise<Uint8Array[]> {
   const info = await getVideoInfo(file)
@@ -99,7 +113,7 @@ export async function extractAllFrames(
 
   for (let i = 0; i < totalFrames; i++) {
     const ts = i / fps
-    const raw = await extractRawFrame(file, ts, outW, outH, fitMode)
+    const raw = await extractRawFrame(file, ts, outW, outH, fitMode, invert)
     frames.push(raw)
     onProgress?.(i + 1, totalFrames)
   }

@@ -26,7 +26,7 @@ export default function App() {
 
     // Pre-extract middle frame for preview
     const midTs = info.duration / 2
-    const gray = await extractRawFrame(f, midTs, 128, 64, fitMode)
+    const gray = await extractRawFrame(f, midTs, 128, 64, fitMode, invert)
     setSampleGray(gray)
   }, [])
 
@@ -34,10 +34,10 @@ export default function App() {
     if (!file) return
     setProcessing(true)
     try {
-      const rawFrames = await extractAllFrames(file, fps, 128, 64, fitMode, (cur, total) => {
+      const rawFrames = await extractAllFrames(file, fps, 128, 64, fitMode, invert, (cur, total) => {
         console.log(`Extracting ${cur}/${total}`)
       })
-      const oledFrames = rawFrames.map((raw) => processFrame(raw, algorithm, 128, 64, invert))
+      const oledFrames = rawFrames.map((raw) => processFrame(raw, algorithm))
       setFrames(oledFrames)
       setStep(4)
     } finally {

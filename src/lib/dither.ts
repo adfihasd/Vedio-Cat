@@ -100,14 +100,8 @@ export function processFrame(
   grayData: Uint8Array,
   algorithm: DitherAlgorithm,
   width = 128,
-  height = 64,
-  invert = false
+  height = 64
 ): OLEDFrame {
   const binary = applyDither(grayData, algorithm, width, height)
-  if (invert) {
-    for (let i = 0; i < binary.length; i++) {
-      binary[i] = binary[i] ? 0 : 1
-    }
-  }
   return packOLED(binary, width, height)
 }
