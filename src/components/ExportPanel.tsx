@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { OLEDFrame, DitherAlgorithm } from '../types'
 import { downloadHeader } from '../lib/oled-export'
 
@@ -11,6 +11,11 @@ interface Props {
 
 export default function ExportPanel({ frames, fps, algorithm, onReset }: Props) {
   const [downloaded, setDownloaded] = useState(false)
+
+  // Reset download state when new frames arrive
+  useEffect(() => {
+    setDownloaded(false)
+  }, [frames])
 
   const handleDownload = () => {
     downloadHeader(frames, fps)
