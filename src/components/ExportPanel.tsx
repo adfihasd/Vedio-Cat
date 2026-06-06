@@ -37,6 +37,13 @@ export default function ExportPanel({ frames, fps, algorithm, onReset }: Props) 
 
 const uint8_t video_frame_000[1024] = { ... };
 // ... 共 ${frames.length} 帧
+
+// 指针表，支持 video_frames[f] 索引访问
+const uint8_t* video_frames[VIDEO_FRAME_COUNT] = {
+    video_frame_000,
+    video_frame_001,
+    // ...
+};
 #endif`}
         </pre>
       </div>

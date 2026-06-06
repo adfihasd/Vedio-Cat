@@ -42,7 +42,19 @@ export function generateVideoHeader(frames: OLEDFrame[], fps: number): string {
     lines.push('')
   }
 
+  // Frame pointer table: allows video_frames[f] to be used as const uint8_t*
+  lines.push('/* Frame pointer table for indexed playback */')
+  lines.push('const uint8_t* video_frames[VIDEO_FRAME_COUNT] = {')
+  for (let f = 0; f < frameCount; f++) {
+    const name = `video_frame_${String(f).padStart(3, '0')}`
+    const comma = (f < frameCount - 1) ? ',' : ''
+    lines.push(`\t${name}${comma}`)
+  }
+  lines.push('};')
+  lines.push('')
+
   lines.push('#endif')
+  lines.push('')
   return lines.join('\n')
 }
 
