@@ -1,0 +1,77 @@
+<h2>📋 设计决策汇总（修正版）</h2>
+<p class="subtitle">对齐 OLED SSD1306 数据格式 — <code>OLED_ShowImage()</code></p>
+
+<div class="section">
+  <h3>OLED 图像数据格式 (SSD1306)</h3>
+  <div class="mockup">
+    <div class="mockup-header">数据排布: 128×64 单色</div>
+    <div class="mockup-body">
+      <table style="width:100%;font-size:11px;text-align:center;">
+        <tr style="color:var(--color-text-secondary);">
+          <td></td><td>col 0</td><td>col 1</td><td>col 2</td><td>...</td><td>col 127</td>
+        </tr>
+        <tr><td style="color:var(--color-text-secondary);">Page 0 (row 0-7)</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 0</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 1</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 2</td>
+          <td>...</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 127</td>
+        </tr>
+        <tr><td style="color:var(--color-text-secondary);">Page 1 (row 8-15)</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 128</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 129</td>
+          <td>...</td><td>...</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 255</td>
+        </tr>
+        <tr><td colspan="6" style="color:var(--color-text-secondary);padding:8px;">...</td></tr>
+        <tr><td style="color:var(--color-text-secondary);">Page 7 (row 56-63)</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 896</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 897</td>
+          <td>...</td><td>...</td>
+          <td style="background:var(--color-surface);padding:4px;">byte 1023</td>
+        </tr>
+      </table>
+      <p style="font-size:10px;color:var(--color-text-secondary);margin-top:8px;">
+        每个 bit 控制一个像素：1=亮, 0=暗 | LSB 在顶部<br>
+        数据顺序: <code>Image[page * 128 + col]</code>
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>对齐现有工程格式 — Diode[] 风格</h3>
+  <div class="mockup">
+    <div class="mockup-header">生成的 video_frames.h (贴合 OLED_Data.c 风格)</div>
+    <div class="mockup-body">
+      <pre style="font-size:10px;background:var(--color-surface);padding:12px;border-radius:4px;overflow-x:auto;">#ifndef __VIDEO_FRAMES_H
+#define __VIDEO_FRAMES_H
+
+#include &lt;stdint.h&gt;
+
+#define VIDEO_FRAME_COUNT 60
+#define VIDEO_FPS 15
+
+/* 图像数据声明 — 每帧 1024 bytes = 128×64÷8 */
+const uint8_t video_frame_000[1024] = {
+    0xFF,0x01,0x81,0x81, ...  // Page 0: 128 bytes
+    ...
+};
+
+const uint8_t video_frame_001[1024] = { ... };
+// ...
+
+#endif</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>STM32 侧播放代码（极简）</h3>
+  <pre style="font-size:10px;background:var(--color-surface);padding:12px;border-radius:4px;">// 逐帧播放视频
+for (int f = 0; f &lt; VIDEO_FRAME_COUNT; f++) {
+    OLED_ShowImage(0, 0, 128, 64, video_frames[f]);
+    OLED_Update();
+    Delay_ms(1000 / VIDEO_FPS);
+}</pre>
+</div>
