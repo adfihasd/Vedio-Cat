@@ -7,9 +7,10 @@
 ## ✨ 功能特性
 
 - **纯浏览器端处理** — 基于 ffmpeg.wasm，视频不上传服务器，隐私安全
-- **4 步向导流程** — 上传 → 配置 → 预览 → 导出，操作清晰
+- **5 步向导流程** — 上传 → 配置 → 算法预览 → **帧管理** → 导出，操作清晰
 - **3 种二值化算法** — 简单阈值、Floyd-Steinberg、Atkinson 误差扩散抖动
 - **中间帧实时预览** — 4 倍放大对比不同算法的效果
+- **帧管理（新增）** — 胶片条浏览每一帧，保留/排除自由切换，所见即所得
 - **灵活帧率控制** — 1–30 fps 可调，实时显示 Flash 占用估算
 - **画面适配模式** — 拉伸填充 / 等比居中（letterbox）
 - **颜色反转** — 暗背景亮轮廓 / 亮背景暗轮廓一键切换
@@ -80,13 +81,27 @@ npm run lint     # 代码检查
 
 界面会实时显示预计帧数和 Flash 占用大小，超过 60KB 会有红色警告。
 
+点击「开始切帧」进入下一步。
+
 ### Step 3 — 对比预览
 
 取视频中间帧，用三种算法分别处理后放大 4 倍展示。点击即可切换算法，观察细节差异。
 
-### Step 4 — 导出
+选择算法后点击「下一步：帧管理」。
 
-点击「下载 video_frames.h」获取 C 头文件，将其放入 STM32 工程即可。
+### Step 4 — 帧管理（新增）
+
+- **胶片条**：所有帧以 2x 缩略图横向排列，鼠标滚轮或拖拽横向滚动
+- **大预览**：点击任意缩略图，上方显示该帧等比例放大预览（保持 128:64 比例）
+- **保留/排除**：双击缩略图或按 `Space` 切换，排除帧显示红色边框 + 半透明
+- **键盘快捷键**：`←` `→` 切换帧，`Space` 切换保留/排除
+- **容量提示**：实时显示保留帧数及 Flash 占用
+
+调整完毕后点击「下一步：导出」。
+
+### Step 5 — 导出
+
+点击「下载 video_frames.h」获取 C 头文件，仅包含保留的帧，将其放入 STM32 工程即可。
 
 ### STM32 端播放示例
 
@@ -125,7 +140,7 @@ for (int f = 0; f < VIDEO_FRAME_COUNT; f++) {
 │   └── icons.svg           # 静态图标
 └── src/
     ├── main.tsx            # 应用入口
-    ├── App.tsx             # 主组件（状态机调度）
+    ├── App.tsx             # 主组件（5 步状态机调度）
     ├── index.css           # Tailwind 全局样式
     ├── types.ts            # 类型定义
     ├── lib/
@@ -133,10 +148,11 @@ for (int f = 0; f < VIDEO_FRAME_COUNT; f++) {
     │   ├── dither.ts       # 抖动算法实现 + SSD1306 打包
     │   └── oled-export.ts  # C 头文件生成与下载
     └── components/
-        ├── VideoUploader.tsx  # Step 1: 视频上传
-        ├── FrameConfig.tsx    # Step 2: 参数配置
-        ├── DitherPreview.tsx  # Step 3: 预览对比
-        └── ExportPanel.tsx    # Step 4: 导出
+        ├── VideoUploader.tsx   # Step 1: 视频上传
+        ├── FrameConfig.tsx     # Step 2: 参数配置
+        ├── DitherPreview.tsx   # Step 3: 预览对比
+        ├── FrameManager.tsx    # Step 4: 帧管理（胶片条 + 保留/排除）
+        └── ExportPanel.tsx     # Step 5: 导出
 ```
 
 ---
@@ -147,6 +163,7 @@ for (int f = 0; f < VIDEO_FRAME_COUNT; f++) {
 - 仅支持单核（Core）版本的 ffmpeg.wasm，处理速度取决于浏览器性能
 - 生成的 `video_frames.h` 格式为 SSD1306 page-column（8 pages × 128 columns = 1024 bytes/帧）
 - 建议帧数控制在 60 帧以内（约 60KB），超出可能导致 STM32 Flash 不足
+- 帧管理页面可通过排除多余帧来控制最终导出大小
 
 ---
 
