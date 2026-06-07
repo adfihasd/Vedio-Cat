@@ -1,10 +1,10 @@
 import type { DitherAlgorithm, OLEDFrame } from '../types'
 
-/** Simple threshold: pixel > 127 → 1, <= 127 → 0 */
-export function threshold(data: Uint8Array): Uint8Array {
+/** Simple threshold: pixel > thresholdValue → 1, <= thresholdValue → 0 */
+export function threshold(data: Uint8Array, thresholdValue = 128): Uint8Array {
   const bin = new Uint8Array(data.length)
   for (let i = 0; i < data.length; i++) {
-    bin[i] = data[i] > 127 ? 1 : 0
+    bin[i] = data[i] > thresholdValue ? 1 : 0
   }
   return bin
 }
@@ -86,10 +86,11 @@ export function applyDither(
   data: Uint8Array,
   algorithm: DitherAlgorithm,
   width = 128,
-  height = 64
+  height = 64,
+  thresholdValue = 128
 ): Uint8Array {
   switch (algorithm) {
-    case 'threshold':       return threshold(data)
+    case 'threshold':       return threshold(data, thresholdValue)
     case 'floyd-steinberg': return floydSteinberg(data, width, height)
     case 'atkinson':        return atkinson(data, width, height)
   }
@@ -100,8 +101,9 @@ export function processFrame(
   grayData: Uint8Array,
   algorithm: DitherAlgorithm,
   width = 128,
-  height = 64
+  height = 64,
+  thresholdValue = 128
 ): OLEDFrame {
-  const binary = applyDither(grayData, algorithm, width, height)
+  const binary = applyDither(grayData, algorithm, width, height, thresholdValue)
   return packOLED(binary, width, height)
 }
