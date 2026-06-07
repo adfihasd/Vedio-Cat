@@ -17,6 +17,7 @@ export default function App() {
   const [invert, setInvert] = useState(false)
   const [sampleGray, setSampleGray] = useState<Uint8Array | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [thresholdValue, setThresholdValue] = useState(128)
 
   // New state for 5-step flow
   const [rawFrames, setRawFrames] = useState<Uint8Array[]>([])
@@ -84,6 +85,7 @@ export default function App() {
     setAlgorithm('floyd-steinberg')
     setFitMode('letterbox')
     setInvert(false)
+    setThresholdValue(128)
     setProcessing(false)
   }
 
@@ -135,6 +137,8 @@ export default function App() {
               selected={algorithm}
               onSelect={setAlgorithm}
               onNext={handleGoFrameManager}
+              thresholdValue={thresholdValue}
+              onThresholdChange={setThresholdValue}
             />
           </div>
         )}
@@ -145,6 +149,7 @@ export default function App() {
             <FrameManager
               rawFrames={rawFrames}
               algorithm={algorithm}
+              thresholdValue={thresholdValue}
               excludedFrames={excludedFrames}
               onToggleFrame={(i) => {
                 setExcludedFrames(prev => {
@@ -169,6 +174,7 @@ export default function App() {
             excludedFrames={excludedFrames}
             fps={fps}
             algorithm={algorithm}
+            thresholdValue={thresholdValue}
             onReset={handleReset}
           />
         )}

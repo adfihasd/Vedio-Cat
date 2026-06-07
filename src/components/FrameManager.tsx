@@ -5,6 +5,7 @@ import { processFrame } from '../lib/dither'
 interface Props {
   rawFrames: Uint8Array[]
   algorithm: DitherAlgorithm
+  thresholdValue: number
   excludedFrames: Set<number>
   onToggleFrame: (index: number) => void
   selectedFrameIndex: number
@@ -18,9 +19,10 @@ function renderThumbnail(
   canvas: HTMLCanvasElement,
   rawData: Uint8Array,
   algorithm: DitherAlgorithm,
+  thresholdValue: number,
   excluded: boolean
 ) {
-  const oled = processFrame(rawData, algorithm)
+  const oled = processFrame(rawData, algorithm, 128, 64, thresholdValue)
   const width = 128, height = 64, scale = 2
   canvas.width = width * scale
   canvas.height = height * scale
@@ -65,10 +67,11 @@ function renderLargePreview(
   canvas: HTMLCanvasElement,
   rawData: Uint8Array,
   algorithm: DitherAlgorithm,
+  thresholdValue: number,
   containerWidth: number,
   containerHeight: number
 ) {
-  const oled = processFrame(rawData, algorithm)
+  const oled = processFrame(rawData, algorithm, 128, 64, thresholdValue)
   const srcW = 128, srcH = 64
 
   // Calculate scale to fit container while preserving 2:1 ratio
@@ -109,7 +112,7 @@ function renderLargePreview(
 }
 
 export default function FrameManager({
-  rawFrames, algorithm, excludedFrames,
+  rawFrames, algorithm, thresholdValue, excludedFrames,
   onToggleFrame, selectedFrameIndex, onSelectFrame,
   onBack, onNext
 }: Props) {
@@ -129,9 +132,9 @@ export default function FrameManager({
     for (let i = 0; i < rawFrames.length; i++) {
       const canvas = thumbCanvasRefs.current.get(i)
       if (!canvas) continue
-      renderThumbnail(canvas, rawFrames[i], algorithm, excludedFrames.has(i))
+      renderThumbnail(canvas, rawFrames[i], algorithm, thresholdValue, excludedFrames.has(i))
     }
-  }, [rawFrames, algorithm, excludedFrames])
+  }, [rawFrames, algorithm, thresholdValue, excludedFrames])
 
   // Render large preview when selection changes
   useEffect(() => {
@@ -139,8 +142,8 @@ export default function FrameManager({
     const container = largeContainerRef.current
     if (!canvas || !container || !rawFrames[selectedFrameIndex]) return
     const rect = container.getBoundingClientRect()
-    renderLargePreview(canvas, rawFrames[selectedFrameIndex], algorithm, rect.width, rect.height)
-  }, [rawFrames, algorithm, selectedFrameIndex])
+    renderLargePreview(canvas, rawFrames[selectedFrameIndex], algorithm, thresholdValue, rect.width, rect.height)
+  }, [rawFrames, algorithm, thresholdValue, selectedFrameIndex])
 
   // Scroll selected thumbnail into view
   useEffect(() => {

@@ -8,10 +8,11 @@ interface Props {
   excludedFrames: Set<number>
   fps: number
   algorithm: DitherAlgorithm
+  thresholdValue: number
   onReset: () => void
 }
 
-export default function ExportPanel({ rawFrames, excludedFrames, fps, algorithm, onReset }: Props) {
+export default function ExportPanel({ rawFrames, excludedFrames, fps, algorithm, thresholdValue, onReset }: Props) {
   const [downloaded, setDownloaded] = useState(false)
 
   // Reset download state when rawFrames changes
@@ -23,8 +24,8 @@ export default function ExportPanel({ rawFrames, excludedFrames, fps, algorithm,
   const keptOLEDFrames = useMemo(() => {
     return rawFrames
       .filter((_, i) => !excludedFrames.has(i))
-      .map(raw => processFrame(raw, algorithm))
-  }, [rawFrames, excludedFrames, algorithm])
+      .map(raw => processFrame(raw, algorithm, 128, 64, thresholdValue))
+  }, [rawFrames, excludedFrames, algorithm, thresholdValue])
 
   const handleDownload = () => {
     downloadHeader(keptOLEDFrames, fps)

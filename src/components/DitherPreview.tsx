@@ -8,6 +8,8 @@ interface Props {
   selected: DitherAlgorithm
   onSelect: (alg: DitherAlgorithm) => void
   onNext: () => void
+  thresholdValue: number
+  onThresholdChange: (v: number) => void
 }
 
 function renderToCanvas(
@@ -45,7 +47,7 @@ function renderToCanvas(
   ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height)
 }
 
-export default function DitherPreview({ sampleGray, selected, onSelect, onNext }: Props) {
+export default function DitherPreview({ sampleGray, selected, onSelect, onNext, thresholdValue, onThresholdChange }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
 
   useEffect(() => {
@@ -53,10 +55,10 @@ export default function DitherPreview({ sampleGray, selected, onSelect, onNext }
     for (const { key } of DITHER_OPTIONS) {
       const canvas = canvasRefs.current.get(key)
       if (!canvas) continue
-      const binary = applyDither(sampleGray, key)
+      const binary = applyDither(sampleGray, key, 128, 64, thresholdValue)
       renderToCanvas(canvas, binary)
     }
-  }, [sampleGray])
+  }, [sampleGray, thresholdValue])
 
   if (!sampleGray) return null
 
@@ -86,6 +88,31 @@ export default function DitherPreview({ sampleGray, selected, onSelect, onNext }
           </div>
         ))}
       </div>
+
+      {/* Threshold slider — only visible when 'threshold' algorithm selected */}
+      {selected === 'threshold' && (
+        <div className="mt-6 bg-zinc-800/50 rounded-xl p-5 border border-zinc-700/50">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-medium text-amber-400">🎚 阈值</label>
+            <span className="font-mono text-lg font-bold text-amber-400">{thresholdValue}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={255}
+            value={thresholdValue}
+            onInput={(e) => onThresholdChange(+(e.target as HTMLInputElement).value)}
+            className="w-full accent-amber-500 h-2"
+          />
+          <div className="flex justify-between text-xs text-zinc-500 mt-2">
+            <span>0（全白）</span>
+            <span>255（全黑）</span>
+          </div>
+          <p className="text-xs text-zinc-500 mt-2">
+            💡 灰度值 &gt; 阈值 → 亮，≤ 阈值 → 暗。阈值越高画面越暗
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 text-center">
         <button
