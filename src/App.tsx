@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { VideoInfo, DitherAlgorithm, FitMode, AppStep } from './types'
 import VideoUploader from './components/VideoUploader'
 import FrameConfig from './components/FrameConfig'
@@ -64,6 +64,13 @@ export default function App() {
   const handleGoExport = useCallback(() => {
     setStep(5)
   }, [])
+
+  // Re-extract sample frame when fitMode or invert changes
+  useEffect(() => {
+    if (!file || !videoInfo) return
+    const midTs = videoInfo.duration / 2
+    extractRawFrame(file, midTs, 128, 64, fitMode, invert).then(setSampleGray)
+  }, [fitMode, invert]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleReset = () => {
     setStep(1)
