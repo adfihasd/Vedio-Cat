@@ -1,34 +1,49 @@
-import { useEffect, useState } from 'react'
-import type { OLEDFrame, DitherAlgorithm } from '../types'
+import { useEffect, useMemo, useState } from 'react'
+import type { DitherAlgorithm } from '../types'
+import { processFrame } from '../lib/dither'
 import { downloadHeader } from '../lib/oled-export'
 
 interface Props {
-  frames: OLEDFrame[]
+  rawFrames: Uint8Array[]
+  excludedFrames: Set<number>
   fps: number
   algorithm: DitherAlgorithm
   onReset: () => void
 }
 
-export default function ExportPanel({ frames, fps, algorithm, onReset }: Props) {
+export default function ExportPanel({ rawFrames, excludedFrames, fps, algorithm, onReset }: Props) {
   const [downloaded, setDownloaded] = useState(false)
 
-  // Reset download state when new frames arrive
+  // Reset download state when rawFrames changes
   useEffect(() => {
     setDownloaded(false)
-  }, [frames])
+  }, [rawFrames])
+
+  // Process kept frames on demand
+  const keptOLEDFrames = useMemo(() => {
+    return rawFrames
+      .filter((_, i) => !excludedFrames.has(i))
+      .map(raw => processFrame(raw, algorithm))
+  }, [rawFrames, excludedFrames, algorithm])
 
   const handleDownload = () => {
-    downloadHeader(frames, fps)
+    downloadHeader(keptOLEDFrames, fps)
     setDownloaded(true)
   }
 
-  const totalKB = (frames.length * 1024 / 1024).toFixed(1)
+  const totalFrames = rawFrames.length
+  const keptCount = keptOLEDFrames.length
+  const excludedCount = totalFrames - keptCount
+  const totalKB = (keptCount * 1024 / 1024).toFixed(1)
 
   return (
     <div className="max-w-xl mx-auto text-center">
-      <h2 className="text-xl font-bold mb-2">Step 4: 导出</h2>
+      <h2 className="text-xl font-bold mb-2">Step 5: 导出</h2>
       <p className="text-zinc-400 text-sm mb-6">
-        {frames.length} 帧 · {totalKB} KB · {algorithm}
+        {keptCount} 帧 · {totalKB} KB · {algorithm}
+        {excludedCount > 0 && (
+          <span className="text-zinc-500"> · 已排除 {excludedCount} 帧</span>
+        )}
       </p>
 
       <div className="bg-zinc-800 rounded-lg p-6 mb-6 text-left">
@@ -37,11 +52,11 @@ export default function ExportPanel({ frames, fps, algorithm, onReset }: Props) 
 {`#ifndef __VIDEO_FRAMES_H
 #define __VIDEO_FRAMES_H
 #include <stdint.h>
-#define VIDEO_FRAME_COUNT ${frames.length}
+#define VIDEO_FRAME_COUNT ${keptCount}
 #define VIDEO_FPS ${fps}
 
 const uint8_t video_frame_000[1024] = { ... };
-// ... 共 ${frames.length} 帧
+// ... 共 ${keptCount} 帧${excludedCount > 0 ? `（${excludedCount} 帧已排除）` : ''}
 
 // 指针表，支持 video_frames[f] 索引访问
 const uint8_t* video_frames[VIDEO_FRAME_COUNT] = {
