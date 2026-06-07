@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react'
-import type { VideoInfo, OLEDFrame, DitherAlgorithm, FitMode, AppStep } from './types'
+import type { VideoInfo, DitherAlgorithm, FitMode, AppStep } from './types'
 import VideoUploader from './components/VideoUploader'
 import FrameConfig from './components/FrameConfig'
 import DitherPreview from './components/DitherPreview'
+import FrameManager from './components/FrameManager'
 import ExportPanel from './components/ExportPanel'
 import { extractRawFrame, extractAllFrames } from './lib/ffmpeg'
-import { processFrame } from './lib/dither'
 
 export default function App() {
   const [step, setStep] = useState<AppStep>(1)
@@ -16,8 +16,12 @@ export default function App() {
   const [fitMode, setFitMode] = useState<FitMode>('letterbox')
   const [invert, setInvert] = useState(false)
   const [sampleGray, setSampleGray] = useState<Uint8Array | null>(null)
-  const [frames, setFrames] = useState<OLEDFrame[]>([])
   const [processing, setProcessing] = useState(false)
+
+  // New state for 5-step flow
+  const [rawFrames, setRawFrames] = useState<Uint8Array[]>([])
+  const [excludedFrames, setExcludedFrames] = useState<Set<number>>(new Set())
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState(0)
 
   const handleVideoReady = useCallback(async (f: File, info: VideoInfo) => {
     setFile(f)
@@ -28,29 +32,47 @@ export default function App() {
     const midTs = info.duration / 2
     const gray = await extractRawFrame(f, midTs, 128, 64, fitMode, invert)
     setSampleGray(gray)
-  }, [])
+  }, [fitMode, invert])
 
   const handleProcess = useCallback(async () => {
     if (!file) return
     setProcessing(true)
     try {
-      const rawFrames = await extractAllFrames(file, fps, 128, 64, fitMode, invert, (cur, total) => {
+      const raw = await extractAllFrames(file, fps, 128, 64, fitMode, invert, (cur, total) => {
         console.log(`Extracting ${cur}/${total}`)
       })
-      const oledFrames = rawFrames.map((raw) => processFrame(raw, algorithm))
-      setFrames(oledFrames)
-      setStep(4)
+      setRawFrames(raw)
+      setExcludedFrames(new Set())
+      setSelectedFrameIndex(0)
+      setStep(3)
     } finally {
       setProcessing(false)
     }
-  }, [file, fps, algorithm])
+  }, [file, fps, fitMode, invert])
+
+  const handleGoFrameManager = useCallback(() => {
+    setSelectedFrameIndex(0)
+    setStep(4)
+  }, [])
+
+  const handleBackToAlgorithm = useCallback(() => {
+    setExcludedFrames(new Set())
+    setSelectedFrameIndex(0)
+    setStep(3)
+  }, [])
+
+  const handleGoExport = useCallback(() => {
+    setStep(5)
+  }, [])
 
   const handleReset = () => {
     setStep(1)
     setFile(null)
     setVideoInfo(null)
     setSampleGray(null)
-    setFrames([])
+    setRawFrames([])
+    setExcludedFrames(new Set())
+    setSelectedFrameIndex(0)
     setFps(10)
     setAlgorithm('floyd-steinberg')
     setFitMode('letterbox')
@@ -68,8 +90,8 @@ export default function App() {
             <p className="text-xs text-zinc-500">SSD1306 128×64 单色 OLED</p>
           </div>
           <div className="flex gap-1">
-            {([1, 2, 3, 4] as AppStep[]).map((s) => (
-              <div key={s} className={`w-8 h-1 rounded-full transition
+            {([1, 2, 3, 4, 5] as AppStep[]).map((s) => (
+              <div key={s} className={`w-6 h-1 rounded-full transition
                 ${s <= step ? 'bg-blue-500' : 'bg-zinc-700'}`}
               />
             ))}
@@ -78,8 +100,10 @@ export default function App() {
       </header>
 
       <main className="px-6 pb-12">
+        {/* Step 1: Upload */}
         {step === 1 && <VideoUploader onVideoReady={handleVideoReady} />}
 
+        {/* Step 2: Config (visible from step 2 onward) */}
         {step >= 2 && videoInfo && (
           <FrameConfig
             videoInfo={videoInfo}
@@ -96,19 +120,46 @@ export default function App() {
           />
         )}
 
-        {step >= 2 && sampleGray && step === 3 && (
+        {/* Step 3: Algorithm preview */}
+        {step === 3 && sampleGray && (
           <div className="mt-10">
             <DitherPreview
               sampleGray={sampleGray}
               selected={algorithm}
               onSelect={setAlgorithm}
+              onNext={handleGoFrameManager}
             />
           </div>
         )}
 
-        {step === 4 && (
+        {/* Step 4: Frame manager */}
+        {step === 4 && rawFrames.length > 0 && (
+          <div className="mt-10">
+            <FrameManager
+              rawFrames={rawFrames}
+              algorithm={algorithm}
+              excludedFrames={excludedFrames}
+              onToggleFrame={(i) => {
+                setExcludedFrames(prev => {
+                  const next = new Set(prev)
+                  if (next.has(i)) next.delete(i)
+                  else next.add(i)
+                  return next
+                })
+              }}
+              selectedFrameIndex={selectedFrameIndex}
+              onSelectFrame={setSelectedFrameIndex}
+              onBack={handleBackToAlgorithm}
+              onNext={handleGoExport}
+            />
+          </div>
+        )}
+
+        {/* Step 5: Export */}
+        {step === 5 && rawFrames.length > 0 && (
           <ExportPanel
-            frames={frames}
+            rawFrames={rawFrames}
+            excludedFrames={excludedFrames}
             fps={fps}
             algorithm={algorithm}
             onReset={handleReset}
