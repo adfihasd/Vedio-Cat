@@ -27,4 +27,4 @@ export const FIT_OPTIONS: { key: FitMode; label: string }[] = [
 ]
 
 /** App state machine steps */
-export type AppStep = 1 | 2 | 3 | 4
+export type AppStep = 1 | 2 | 3 | 4 | 5
