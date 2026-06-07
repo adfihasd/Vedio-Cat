@@ -7,6 +7,7 @@ interface Props {
   sampleGray: Uint8Array | null   // 128×64 raw grayscale
   selected: DitherAlgorithm
   onSelect: (alg: DitherAlgorithm) => void
+  onNext: () => void
 }
 
 function renderToCanvas(
@@ -44,7 +45,7 @@ function renderToCanvas(
   ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height)
 }
 
-export default function DitherPreview({ sampleGray, selected, onSelect }: Props) {
+export default function DitherPreview({ sampleGray, selected, onSelect, onNext }: Props) {
   const canvasRefs = useRef<Map<string, HTMLCanvasElement>>(new Map())
 
   useEffect(() => {
@@ -84,6 +85,15 @@ export default function DitherPreview({ sampleGray, selected, onSelect }: Props)
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-8 text-center">
+        <button
+          onClick={onNext}
+          className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-lg transition"
+        >
+          下一步：帧管理 →
+        </button>
       </div>
     </div>
   )
